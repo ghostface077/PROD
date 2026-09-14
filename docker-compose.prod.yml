@@ -110,28 +110,6 @@ services:
     networks:
       - itsupport_network
 
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: itsupport_nginx
-    restart: unless-stopped
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    ports:
-      - "80:80"
-    depends_on:
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    networks:
-      - itsupport_network
-
 volumes:
   postgres_data:
     name: itsupport_postgres_data_prod
