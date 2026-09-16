@@ -110,7 +110,7 @@ services:
     networks:
       - itsupport_network
 
-  nginx:
+   nginx:
     image: nginx:1.27-alpine
     container_name: itsupport_nginx
     restart: unless-stopped
