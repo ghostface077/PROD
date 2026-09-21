@@ -131,6 +131,8 @@ jobs:
       DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configurer SSH
         env:
