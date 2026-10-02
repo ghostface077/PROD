@@ -1,8 +1,9 @@
-﻿"""
+"""
 Configuration centrale de l'application, chargée depuis les variables
 d'environnement (voir le fichier .env à la racine du projet).
 """
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,6 +32,14 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
+    # Cookies d'authentification (access + refresh token).
+    # None = comportement par défaut selon ENVIRONMENT (voir *_resolved plus bas).
+    # À surcharger via COOKIE_SECURE / COOKIE_SAMESITE dans .env.production :
+    # indispensable tant que le site est servi en HTTP (sans certificat TLS),
+    # car un cookie "Secure" est rejeté silencieusement par le navigateur.
+    cookie_secure: bool | None = None
+    cookie_samesite: Literal["lax", "strict", "none"] | None = None
+
     # Application
     environment: str = "development"
     log_level: str = "INFO"
@@ -58,6 +67,28 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.backend_cors_origins.split(",") if origin.strip()]
+
+    @property
+    def cookie_secure_resolved(self) -> bool:
+        if self.cookie_secure is not None:
+            return self.cookie_secure
+        return self.environment == "production"
+
+    @property
+    def cookie_samesite_resolved(self) -> str:
+        if self.cookie_samesite is not None:
+            return self.cookie_samesite
+        return "none" if self.environment == "production" else "lax"
+
+    @model_validator(mode="after")
+    def _validate_cookie_settings(self) -> "Settings":
+        """SameSite=None exige Secure=True : sinon les navigateurs rejettent le cookie."""
+        if self.cookie_samesite_resolved == "none" and not self.cookie_secure_resolved:
+            raise RuntimeError(
+                "COOKIE_SAMESITE=none exige COOKIE_SECURE=true. "
+                "En HTTP simple, utilisez COOKIE_SECURE=false et COOKIE_SAMESITE=lax."
+            )
+        return self
 
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
