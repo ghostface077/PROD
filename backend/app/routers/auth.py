@@ -44,8 +44,12 @@ def _cookie_kwargs(*, path: str) -> dict:
     suivant le login. SameSite=None exige Secure=True, déjà le cas en
     production ci-dessous — la protection CSRF reste assurée par ailleurs
     (aucune mutation de cette API ne se déclenche via une requête GET)."""
-    is_production = settings.environment == "production"
-    return dict(httponly=True, samesite="none" if is_production else "lax", secure=is_production, path=path)
+    return dict(
+        httponly=True,
+        samesite=settings.cookie_samesite_resolved,
+        secure=settings.cookie_secure_resolved,
+        path=path,
+    )
 
 
 def _set_auth_cookies(response: Response, *, access_token: str, refresh_token: str) -> None:
